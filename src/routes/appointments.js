@@ -51,13 +51,43 @@ appointmentRouter.get('/user/appointment/view', userAuth, async (req, res) => {
 
         const appointments = await Appointment.find({ patientId: userId })
 
-        const safeAppointments = appointments.map((appointment) => {
+        const safeAppointments = appointments.map(async (appointment) => {
+            if (appointment.status === 'pending' && appointment.appointmentTime <= Date.now()) {
+                appointment.status = 'expired'
+                await appointment.save()
+            }
             return appointment.getSafeData()
         })
 
         res.status(200).json({
             message: "appointments fetched",
             body: safeAppointments
+        })
+
+    } catch (error) {
+        res.status(400).json({
+            message: error.message,
+        })
+    }
+})
+
+appointmentRouter.post('/user/appointment/cancel/:appointmentId', userAuth, async (req, res) => {
+    try {
+        const userId = req.user._id
+        const { appointmentId } = req.params
+
+        const appointment = await Appointment.findOne({ _id: appointmentId, patientId: userId })
+
+        if (!appointment) {
+            throw new Error('appointment not found')
+        }
+
+        appointment.status = 'cancelled';
+        await appointment.save()
+
+        res.status(200).json({
+            message: "appointment cancelled",
+            body: appointment
         })
 
     } catch (error) {
