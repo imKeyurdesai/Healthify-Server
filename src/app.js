@@ -9,7 +9,11 @@ dotenv.config()
 
 const app = express()
 
-const allowedOrigins = ['http://localhost:5173']
+const allowedOrigins = ['http://localhost:5173', process.env.CLIENT_URL].filter(Boolean)
+
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1)
+}
 
 app.use(express.json())
 app.use(cookieParser())

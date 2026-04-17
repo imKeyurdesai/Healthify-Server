@@ -5,6 +5,15 @@ import User from '../models/user.js'
 import bcrypt from 'bcryptjs'
 
 const doctorRouter = express.Router()
+const isProduction = process.env.NODE_ENV === 'production'
+
+const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
+    maxAge: 3600 * 24 * 7 * 1000
+}
 
 doctorRouter.post('/doctor/register', userAuth, async (req, res) => {
     try {
@@ -27,7 +36,7 @@ doctorRouter.post('/doctor/register', userAuth, async (req, res) => {
         const isDoctorExist = await Doctor.findOne({ emailId: emailId })
 
         const isOldPasswordValid = await user.validatePassword(oldPassword)
-        
+
         if (!isOldPasswordValid) {
             throw new Error('invalid old password')
         }
@@ -53,9 +62,7 @@ doctorRouter.post('/doctor/register', userAuth, async (req, res) => {
         await User.findByIdAndDelete(user._id)
 
         const token = await newDoctor.getJWT()
-        res.cookie('token', token, {
-            expires: new Date(Date.now() + (3600 * 24 * 7) * 1000)
-        })
+        res.cookie('token', token, cookieOptions)
 
         res.status(200).json({
             message: 'congrats! you became doctor',
@@ -88,9 +95,7 @@ doctorRouter.post('/doctor/login', async (req, res) => {
         }
 
         const token = await doctor.getJWT()
-        res.cookie('token', token, {
-            expires: new Date(Date.now() + (3600 * 24 * 7) * 1000)
-        })
+        res.cookie('token', token, cookieOptions)
 
         res.status(200).json({
             message: 'doctor logged in successfully',
