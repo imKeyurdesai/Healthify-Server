@@ -7,27 +7,27 @@ const appointmentRouter = express.Router()
 
 appointmentRouter.post('/user/appointment/create', userAuth, async (req, res) => {
     try {
-        const userId = req.user._id
+        const user = req.user
         const { doctorId, scheduledTime } = req.body
 
         if (!doctorId || !scheduledTime) {
             throw new Error('doctorId and scheduledTime are required fields')
         }
 
-        const doctorExists = await Doctor.findById(doctorId)
+        const doctor = await Doctor.findById(doctorId)
         const appointmentExists = await Appointment.findOne({
             doctorId: doctorId,
-            patientId: userId,
+            patientId: user._id,
             status: 'pending'
         })
 
-        if (!doctorExists) throw new Error('doctor does not exists')
+        if (!doctor) throw new Error('doctor does not exists')
 
         if (appointmentExists) {
             throw new Error('appointment already exists')
         }
 
-        const appointment = new Appointment({ doctorId: doctorId, patientId: userId, appointmentTime: scheduledTime, status: "pending" })
+        const appointment = new Appointment({ doctorId: doctorId, patientId: user._id, appointmentTime: scheduledTime, status: "pending", patient: user.getSafeData(), doctor: doctor.getSafeData() })
 
         appointment.validateRequest()
 
@@ -35,7 +35,7 @@ appointmentRouter.post('/user/appointment/create', userAuth, async (req, res) =>
 
         res.status(200).json({
             message: "appointment added",
-            body: appointment
+            body: appointment.getSafeData()
         })
 
     } catch (error) {
@@ -48,20 +48,25 @@ appointmentRouter.post('/user/appointment/create', userAuth, async (req, res) =>
 appointmentRouter.get('/user/appointment/view', userAuth, async (req, res) => {
     try {
         const userId = req.user._id
+        const now = new Date()
 
-        const appointments = await Appointment.find({ patientId: userId })
+        await Appointment.updateMany(
+            {
+                patientId: userId,
+                status: 'pending',
+                appointmentTime: { $lte: now }
+            },
+            { $set: { status: 'expired' } }
+        )
+        const Appointments = await Appointment.find({ patientId: userId })
 
-        const safeAppointments = appointments.map(async (appointment) => {
-            if (appointment.status === 'pending' && appointment.appointmentTime <= Date.now()) {
-                appointment.status = 'expired'
-                await appointment.save()
-            }
-            return appointment.getSafeData()
-        })
+        const safeAppointments = Appointments.map((appointment) =>
+            appointment.getSafeData()
+        )
 
         res.status(200).json({
             message: "appointments fetched",
-            body: safeAppointments
+            body: safeAppointments.reverse()
         })
 
     } catch (error) {
@@ -71,12 +76,12 @@ appointmentRouter.get('/user/appointment/view', userAuth, async (req, res) => {
     }
 })
 
-appointmentRouter.post('/user/appointment/cancel/:appointmentId', userAuth, async (req, res) => {
+appointmentRouter.patch('/user/appointment/cancel/:appointmentId', userAuth, async (req, res) => {
     try {
         const userId = req.user._id
         const { appointmentId } = req.params
 
-        const appointment = await Appointment.findOne({ _id: appointmentId, patientId: userId })
+        const appointment = await Appointment.findOne({ _id: appointmentId, patientId: userId, status: 'pending' })
 
         if (!appointment) {
             throw new Error('appointment not found')
@@ -87,7 +92,7 @@ appointmentRouter.post('/user/appointment/cancel/:appointmentId', userAuth, asyn
 
         res.status(200).json({
             message: "appointment cancelled",
-            body: appointment
+            body: appointment.getSafeData()
         })
 
     } catch (error) {
@@ -100,6 +105,16 @@ appointmentRouter.post('/user/appointment/cancel/:appointmentId', userAuth, asyn
 appointmentRouter.get('/doctor/appointment/view', doctorAuth, async (req, res) => {
     try {
         const doctor = req.doctor
+        const now = new Date()
+
+        await Appointment.updateMany(
+            {
+                doctorId: doctor._id,
+                status: 'pending',
+                appointmentTime: { $lte: now }
+            },
+            { $set: { status: 'expired' } }
+        )
 
         const appointments = await Appointment.find({ doctorId: doctor._id })
 
@@ -109,7 +124,7 @@ appointmentRouter.get('/doctor/appointment/view', doctorAuth, async (req, res) =
 
         res.status(200).json({
             message: "appointments fetched",
-            body: safeAppointments
+            body: safeAppointments.reverse()
         })
 
     } catch (error) {
@@ -140,10 +155,6 @@ appointmentRouter.patch('/doctor/appointment/review/:appointmentId', doctorAuth,
             throw new Error('appointedTime is required when accepting an appointment')
         }
 
-        if (status === 'rejected' && appointedTime) {
-            throw new Error('appointedTime is not required when rejecting an appointment')
-        }
-
 
         const isAppointmentValid = await Appointment.findOne({ _id: appointmentId, doctorId: doctor._id, status: 'pending' })
 
@@ -155,7 +166,7 @@ appointmentRouter.patch('/doctor/appointment/review/:appointmentId', doctorAuth,
 
         appointment.status = status
 
-        if (appointedTime) {
+        if (appointedTime && status === 'accepted') {
             appointment.appointmentTime = appointedTime
             appointment.validateRequest()
         }

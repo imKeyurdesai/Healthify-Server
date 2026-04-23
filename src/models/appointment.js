@@ -15,22 +15,24 @@ const appointmentSchema = new mongoose.Schema({
             message: 'invalid status'
         }
     },
+    patient: {
+        type: Object,
+        required: true
+    },
+    doctor: {
+        type: Object,
+        required: true
+    },
     appointmentTime: {
-        type: Date,
-        validate: {
-            validator: function (v) {
-                return v > Date.now()
-            },
-            message: "Appointment time must be in the future"
-        }
+        type: Date
     }
 }, {
     timestamps: true
 })
 
 appointmentSchema.methods.getSafeData = function () {
-    const { _id, doctorId, patientId, status, appointmentTime } = this
-    return { _id, doctorId, patientId, status, appointmentTime }
+    const { _id, doctorId, patientId, status, appointmentTime, patient, doctor } = this
+    return { _id, doctorId, patientId, status, appointmentTime, patient, doctor }
 }
 
 appointmentSchema.methods.validateRequest = function () {

@@ -2,6 +2,7 @@ import express from 'express'
 import { doctorAuth, userAuth } from '../middlewares/auth.js'
 import { validateProfile } from '../validators/index.js'
 import Doctor from '../models/doctors.js'
+import User from '../models/user.js'
 
 const profileRouter = express.Router()
 
@@ -75,6 +76,34 @@ profileRouter.get('/getAllDoctors', userAuth, async (req, res) => {
     } catch (error) {
         res.status(400).json({
             message: 'error to list doctors' + error.message
+        })
+    }
+})
+
+profileRouter.get('/getUsers', doctorAuth, async (req, res) => {
+    try {
+        const { userIDs } = req.body
+
+        if (!userIDs || !Array.isArray(userIDs)) {
+            throw new Error('userIDs must be an array of user IDs')
+        }
+
+        const users = await Promise.all(userIDs.map(async (userId) => {
+            const user = await User.findById(userId)
+            if (!user) {
+                throw new Error(`User with ID ${userId} not found`)
+            }
+            return user
+        }))
+
+        res.status(200).json({
+            message: 'fetched users',
+            body: users.map(user => user.getSafeData())
+        })
+
+    } catch (error) {
+        res.status(400).json({
+            message: 'error to list users' + error.message
         })
     }
 })
