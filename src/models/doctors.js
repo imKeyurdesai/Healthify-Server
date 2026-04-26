@@ -33,6 +33,17 @@ const doctorSchema = new mongoose.Schema({
             message: "enter a valid email"
         }
     },
+    mobileNumber: {
+        type: String,
+        trim: true,
+        unique: true,
+        validate: {
+            validator: function (mobile) {
+                return validator.isMobilePhone(mobile)
+            },
+            message: "enter a valid mobile number"
+        }
+    },
     password: {
         type: String,
         required: true,
@@ -94,8 +105,8 @@ const doctorSchema = new mongoose.Schema({
 })
 
 doctorSchema.methods.getSafeData = function () {
-    const { _id, firstName, lastName, emailId, age, gender, profileUrl, role, skills, languages, about, location } = this
-    return { _id, firstName, lastName, emailId, age, gender, profileUrl, role, skills, location, about, languages }
+    const { _id, firstName, lastName, emailId, mobileNumber, age, gender, profileUrl, role, skills, languages, about, location } = this
+    return { _id, firstName, lastName, emailId, mobileNumber, age, gender, profileUrl, role, skills, location, about, languages }
 
 }
 

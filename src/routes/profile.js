@@ -125,7 +125,7 @@ profileRouter.get('/doctor/profile/view', doctorAuth, async (req, res) => {
 profileRouter.patch('/doctor/profile/update', doctorAuth, async (req, res) => {
     try {
         const doctor = req.doctor
-        const allowedUpdates = ['firstName', 'lastName', 'age', 'gender', 'profileUrl', 'skills', 'location', 'about', 'languages']
+        const allowedUpdates = ['firstName', 'lastName', 'age', 'mobileNumber', 'gender', 'profileUrl', 'skills', 'location', 'about', 'languages']
         const requestKeys = Object.keys(req.body)
         const isValidUpdate = requestKeys.every((key) => allowedUpdates.includes(key))
 
