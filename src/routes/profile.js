@@ -20,6 +20,24 @@ profileRouter.get('/user/profile/view', userAuth, (req, res) => {
     }
 })
 
+profileRouter.post('/user/profile/upload-image', userAuth, async (req, res) => {
+    try {
+        const user = req.user
+        const file = req.file
+
+        if (!file) {
+            throw new Error('no file uploaded')
+        }
+
+
+    }
+    catch (error) {
+        res.status(400).json({
+            message: 'unable to upload image ' + error.message,
+        })
+    }
+})
+
 profileRouter.patch('/user/profile/update', userAuth, async (req, res) => {
     try {
         const user = req.user
