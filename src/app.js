@@ -3,7 +3,7 @@ import connectDB from './config/db.js'
 import dotenv from 'dotenv'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
-import { appointmentRouter, authRouter, doctorRouter, profileRouter, feedRouter } from './routes/index.js'
+import { appointmentRouter, authRouter, doctorRouter, profileRouter, feedRouter, notificationRouter } from './routes/index.js'
 
 dotenv.config()
 
@@ -22,7 +22,7 @@ app.use(cors({
     credentials: true
 }));
 
-app.use('/', authRouter, profileRouter, appointmentRouter, doctorRouter, feedRouter)
+app.use('/', authRouter, profileRouter, appointmentRouter, doctorRouter, feedRouter, notificationRouter)
 
 connectDB().then(() => {
     console.log('Database connection established...')

@@ -2,6 +2,7 @@ import express from 'express'
 import { doctorAuth, userAuth } from '../middlewares/auth.js'
 import Appointment from '../models/appointment.js'
 import Doctor from '../models/doctors.js'
+import Notification from '../models/notification.js'
 
 const appointmentRouter = express.Router()
 
@@ -81,7 +82,7 @@ appointmentRouter.patch('/user/appointment/cancel/:appointmentId', userAuth, asy
         const userId = req.user._id
         const { appointmentId } = req.params
 
-        const appointment = await Appointment.findOne({ _id: appointmentId, patientId: userId, status: 'pending' })
+        const appointment = await Appointment.findOne({ _id: appointmentId, patientId: userId, status: { $in: ['pending', 'accepted'] } })
 
         if (!appointment) {
             throw new Error('appointment not found')
@@ -89,6 +90,12 @@ appointmentRouter.patch('/user/appointment/cancel/:appointmentId', userAuth, asy
 
         appointment.status = 'cancelled';
         await appointment.save()
+
+        await Notification.create({
+            userId: appointment.patientId,
+            title: 'Appointment Cancelled',
+            message: `Your appointment with Dr. ${appointment.doctor.firstName} ${appointment.doctor.lastName} has been cancelled`
+        })
 
         res.status(200).json({
             message: "appointment cancelled",
@@ -172,6 +179,12 @@ appointmentRouter.patch('/doctor/appointment/review/:appointmentId', doctorAuth,
         }
 
         await appointment.save()
+
+        await Notification.create({
+            userId: appointment.patientId,
+            title: 'Appointment Rescheduled',
+            message: `Your appointment has been rescheduled by Dr. ${doctor.firstName} ${doctor.lastName}`
+        })
 
         res.status(200).json({
             message: 'appointment sucessfully edited',
