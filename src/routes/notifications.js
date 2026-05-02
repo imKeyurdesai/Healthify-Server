@@ -18,7 +18,6 @@ notificationRouter.get('/user/notification/view', userAuth, async (req, res) => 
         }
 
         const notifications = await Notification.find(query)
-            .populate('appointmentId')
             .sort({ createdAt: -1 })
 
         const safeNotifications = notifications.map((notification) =>

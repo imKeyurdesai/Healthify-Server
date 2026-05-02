@@ -23,8 +23,8 @@ const notificationSchema = new mongoose.Schema({
 })
 
 notificationSchema.methods.getSafeData = function () {
-    const { _id, userId, appointmentId, type, title, message, isRead, createdAt, updatedAt } = this
-    return { _id, userId, appointmentId, type, title, message, isRead, createdAt, updatedAt }
+    const { _id, userId, title, message, isRead, createdAt } = this
+    return { _id, userId, title, message, isRead, createdAt }
 }
 
 const Notification = mongoose.model('Notification', notificationSchema)
