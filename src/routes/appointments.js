@@ -34,9 +34,11 @@ appointmentRouter.post('/user/appointment/create', userAuth, async (req, res) =>
 
         await appointment.save()
 
+        const safeAppointment = await appointment.getSafeData()
+
         res.status(200).json({
             message: "appointment added",
-            body: appointment.getSafeData()
+            body: safeAppointment
         })
 
     } catch (error) {
@@ -61,9 +63,9 @@ appointmentRouter.get('/user/appointment/view', userAuth, async (req, res) => {
         )
         const Appointments = await Appointment.find({ patientId: userId })
 
-        const safeAppointments = Appointments.map((appointment) =>
+        const safeAppointments = await Promise.all(Appointments.map((appointment) =>
             appointment.getSafeData()
-        )
+        ))
 
         res.status(200).json({
             message: "appointments fetched",
@@ -72,7 +74,7 @@ appointmentRouter.get('/user/appointment/view', userAuth, async (req, res) => {
 
     } catch (error) {
         res.status(400).json({
-            message: error.message,
+            message: 'unable to view appointment : ' + error.message
         })
     }
 })
@@ -91,15 +93,17 @@ appointmentRouter.patch('/user/appointment/cancel/:appointmentId', userAuth, asy
         appointment.status = 'cancelled';
         await appointment.save()
 
+        const safe = await appointment.getSafeData()
+
         await Notification.create({
             userId: appointment.patientId,
             title: 'Appointment Cancelled',
-            message: `Your appointment with Dr. ${appointment.doctor.firstName} ${appointment.doctor.lastName} has been cancelled`
+            message: `Your appointment with Dr. ${safe.doctor.firstName} ${safe.doctor.lastName} has been cancelled`
         })
 
         res.status(200).json({
             message: "appointment cancelled",
-            body: appointment.getSafeData()
+            body: safe
         })
 
     } catch (error) {
@@ -125,9 +129,9 @@ appointmentRouter.get('/doctor/appointment/view', doctorAuth, async (req, res) =
 
         const appointments = await Appointment.find({ doctorId: doctor._id })
 
-        const safeAppointments = appointments.map((appointment) => {
+        const safeAppointments = await Promise.all(appointments.map((appointment) => {
             return appointment.getSafeData()
-        })
+        }))
 
         res.status(200).json({
             message: "appointments fetched",
@@ -186,9 +190,11 @@ appointmentRouter.patch('/doctor/appointment/review/:appointmentId', doctorAuth,
             message: `Your appointment has been rescheduled by Dr. ${doctor.firstName} ${doctor.lastName}`
         })
 
+        const safeEdited = await appointment.getSafeData()
+
         res.status(200).json({
             message: 'appointment sucessfully edited',
-            body: appointment.getSafeData()
+            body: safeEdited
         })
 
     } catch (error) {

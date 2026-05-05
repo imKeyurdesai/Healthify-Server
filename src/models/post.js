@@ -17,6 +17,10 @@ const postSchema = new mongoose.Schema({
         ref: 'Doctor',
         required: true
     },
+    likes: {
+        type: Number,
+        default: 0
+    }
 }, { timestamps: true });
 
 const Post = mongoose.model('Post', postSchema);
